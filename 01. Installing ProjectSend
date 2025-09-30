@@ -1,0 +1,183 @@
+ProjectSend via docker
+To set up ProjectSend using Docker, the simplest and most recommended approach is to use a docker-compose.yml file with images provided by LinuxServer.io. This method bundles both the ProjectSend application and a database server, making setup much easier than running containers individually. 
+Prerequisites
+Before you begin, ensure you have Docker and Docker Compose installed on your system.
+Docker Engine: https://docs.docker.com/engine/install/
+Docker Compose (version 2): https://docs.docker.com/compose/install/ 
+Step 1: Create the directory structure
+First, create a new directory for your ProjectSend installation. This will hold your docker-compose.yml file and the persistent data for the application and database. 
+sh
+mkdir projectsend
+cd projectsend
+Use code with caution.
+
+Step 2: Create the docker-compose file
+Create a new file named docker-compose.yml in the projectsend directory and add the following content: 
+yaml
+version: "3"
+
+services:
+  projectsend:
+    image: lscr.io/linuxserver/projectsend:latest # i am using this version - docker pull linuxserver/projectsend:version-r1720
+    container_name: projectsend
+    environment:
+      - PUID=1000 # Use your own user's UID.
+      - PGID=1000 # Use your own user's GID.
+      - TZ=Etc/UTC
+      - MYSQL_DATABASE=projectsend
+      - MYSQL_USER=projectsend
+      - MYSQL_PASSWORD=your_secure_password
+      - MYSQL_ROOT_PASSWORD=your_root_password
+    volumes:
+      - ./config:/config
+      - ./data:/data
+    ports:
+      - 80:80 # Port format: <host_port>:<container_port>
+    restart: unless-stopped
+    depends_on:
+      - db
+
+  db:
+    image: mariadb:11.4-noble
+    container_name: projectsend-db
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - MYSQL_ROOT_PASSWORD=your_root_password
+      - MYSQL_DATABASE=projectsend
+      - MYSQL_USER=projectsend
+      - MYSQL_PASSWORD=your_secure_password
+    volumes:
+      - ./db:/var/lib/mysql
+    restart: unless-stopped
+Use code with caution.
+
+Customization notes:
+PUID and PGID: These specify the User and Group IDs to ensure proper file permissions. To find your IDs on Linux, run id -u and id -g in your terminal. For most setups, 1000 will work.
+TZ: Set your correct timezone. A list of possible values is available on Wikipedia.
+your_secure_password and your_root_password: Change these values to strong, secure passwords.
+ports: The example maps the container's port 80 to port 80 on your host machine. If port 80 is in use, change the host port (e.g., 8080:80).
+volumes: This maps local folders (./config, ./data, ./db) to the container's internal storage locations. This ensures your ProjectSend configuration, files, and database persist even if you delete and recreate the containers. 
+Step 3: Launch the containers
+From the same directory where you saved your docker-compose.yml file, run the following command to start ProjectSend in detached mode: 
+sh
+docker-compose up -d
+Use code with caution.
+
+It may take a few minutes for the containers to download and start up for the first time. 
+Step 4: Complete the web installation
+Access the installer: Open your web browser and navigate to http://localhost. If you changed the host port in your docker-compose.yml, use that port instead (e.g., http://localhost:8080).
+Database configuration: On the installation page, enter the database details from your docker-compose.yml file:
+Host: db (This is the name of the database service in the YAML file)
+Database name: projectsend
+Username: projectsend
+Password: your_secure_password
+Administrator account: Follow the remaining prompts to create your administrator account and finish the installation. 
+Ongoing management
+Restart: To restart the containers, run docker-compose restart.
+Stop: To stop the containers, run docker-compose down.
+Update: To update ProjectSend to a newer version, run the following commands:
+sh
+docker-compose pull projectsend
+docker-compose up -d projectsend
+Use code with caution.
+
+ 
+AI responses may include mistakes. Learn more
+
+
+
+
+undefined
+undefined
+undefined
+29 sites
+ProjectSend - Secure File Sharing Made Simple | Free Open ...
+Docker pulls. Ready to take control of your file sharing? Join thousands of professionals using ProjectSend for secure, self-hosted file sharing. Download Proje...
+favicon
+ProjectSend
+
+terrestris/projectsend-docker: Creates a docker ... - GitHub
+* projectsend-docker. Creates a docker image for projectsend. ( https://www.projectsend.org/) Influenced by https://github.com/linuxserver/docker-projectsend. *
+favicon
+GitHub
+How to Install Projectsend on Your Synology NAS
+Jan 15, 2024 — 💡Note: This guide works perfectly with the latest ProjectSend r1720 release. * STEP 1. Please Support My work by Making a Donation. * STEP 2. Install Portainer...
+favicon
+Marius Hosting
+
+Show all
+i used this .yml file and it is running but when i put in the credentials it gives me an error:
+
+version: "3"
+
+services:
+  projectsend:
+    image: lscr.io/linuxserver/projectsend:latest
+    container_name: projectsend
+    environment:
+      - PUID=1000 # Use your own user's UID.
+      - PGID=1000 # Use your own user's GID.
+      - TZ=Etc/UTC
+      - MYSQL_DATABASE=projectsend
+      - MYSQL_USER=projectsend
+      - MYSQL_PASSWORD=projectsend
+      - MYSQL_ROOT_PASSWORD=projectsend
+    volumes:
+      - ./config:/config
+      - ./data:/data
+    ports:
+      - 9090:80 # Port format: <host_port>:<container_port>
+    restart: unless-stopped
+    depends_on:
+      - db
+
+  db:
+    image: mariadb:11.4-noble
+    container_name: projectsend-db
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - MYSQL_ROOT_PASSWORD=projectsend
+      - MYSQL_DATABASE=projectsend
+      - MYSQL_USER=projectsend
+      - MYSQL_PASSWORD=projectsend
+    volumes:
+      - ./db:/var/lib/mysql
+    restart: unless-stopped
+That's a very common issue when setting up applications with Docker and MariaDB. The credentials from your docker-compose.yml are used to create the user and database, but if the database container has been run before, the user may not be created correctly. 
+The most likely cause is that you are reusing the database volume, and the password was not set or applied correctly during the initial run. 
+Solution: Start with a clean database volume
+To fix this, you need to tear down the old containers and volumes to force a fresh install of the database.
+Stop and remove all containers and volumes associated with your ProjectSend setup. This command deletes everything, including the database data in your local ./db folder.
+sh
+docker-compose down -v
+Use code with caution.
+
+Verify that the old data is gone. The db and config folders should now be empty or deleted entirely.
+Restart the services with your docker-compose.yml file.
+sh
+docker-compose up -d
+Use code with caution.
+
+Access the web installer again and enter the same credentials as before. The database user and schema will now be created correctly. 
+What if it still fails?
+If the re-installation doesn't solve the problem, check these other potential causes:
+1. Container startup order
+Although you have depends_on: - db in your docker-compose.yml, it only guarantees the db container starts first. It does not ensure the database server is ready to accept connections before the ProjectSend container starts. This can sometimes cause connection issues. 
+How to verify:
+Check the container logs for errors.
+sh
+docker-compose logs
+Use code with caution.
+
+Look for lines indicating that the ProjectSend container tried to connect to the database before it was ready.
+2. Incorrect hostname during installation
+When the ProjectSend web installer asks for the database host, you must enter the name of the MariaDB service as defined in your docker-compose.yml, which is db. Using localhost or 127.0.0.1 will not work. 
+In your installation wizard, enter the following:
+Host: db
+Database name: projectsend
+Username: projectsend
+Password: projectsend 
