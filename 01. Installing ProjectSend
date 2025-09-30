@@ -1,3 +1,5 @@
+https://www.youtube.com/watch?v=_9MPqAZKu9A
+
 ProjectSend via docker
 To set up ProjectSend using Docker, the simplest and most recommended approach is to use a docker-compose.yml file with images provided by LinuxServer.io. This method bundles both the ProjectSend application and a database server, making setup much easier than running containers individually. 
 Prerequisites
