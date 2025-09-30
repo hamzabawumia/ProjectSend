@@ -1,0 +1,5 @@
+Navigate the your docker base directory/config/projectsend
+        e.g. /home/hamza/Desktop/projectsend_2/config/projectsend
+
+open the sys.config.php file with vscode and edit the 
+        define('MAX_FILESIZE','30048'); 
